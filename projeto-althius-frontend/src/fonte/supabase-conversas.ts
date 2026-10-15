@@ -8,6 +8,7 @@ import { corpoDoErroDaFuncao, motivoDaFalhaDaFuncao } from './falha-da-edge-func
 import { reconhecerMencoes } from './mencoes'
 import type {
   AgenteId,
+  ConversaDoSlack,
   ConversaRetomada,
   ConversasRetomadas,
   FonteDeAgentes,
@@ -20,6 +21,9 @@ import type {
 } from './tipos'
 
 type Tipo = 'agente' | 'coordenada'
+
+/** De onde veio a Conversa: da Althius ou de um thread do Slack (slack-canal 06). */
+type Origem = 'althius' | 'slack'
 
 interface Evento {
   seq: number
@@ -51,11 +55,14 @@ type Fonte = Pick<
   | 'renomearConversa'
   | 'abrirConversa'
   | 'conversaCoordenadaAtual'
+  | 'abrirConversaDoSlack'
 >
 
 interface ConversaListada {
   id: string
   kind: Tipo
+  agent_id: string | null
+  origin?: Origem
   title: string | null
   first_request: string | null
   updated_at: string
@@ -229,7 +236,8 @@ export function criarFonteDeConversasSupabase(
   async function lerConversa<P>(id: string, converter: (evento: Evento) => P | null) {
     const { data, error } = await cliente.rpc('get_agent_conversation', { p_conversation_id: id })
     if (error) throw new Error('Não foi possível carregar a Conversa.')
-    const execucoes = (data as { runs: ExecucaoSalva[] }).runs
+    const salva = data as { agent_id: string | null; origin?: Origem; runs: ExecucaoSalva[] }
+    const execucoes = salva.runs
     const turnos: TurnoRetomado<P>[] = execucoes.map((execucao) => ({
       pedido: execucao.request_text,
       passos: execucao.events.flatMap((evento) => converter(evento) ?? []),
@@ -238,13 +246,15 @@ export function criarFonteDeConversasSupabase(
     const emAndamento = aberta && !terminou(aberta.status)
       ? acompanhar(aberta.id, aberta.events.at(-1)?.seq ?? 0, converter)
       : undefined
-    return { turnos, emAndamento }
+    return { turnos, emAndamento, agenteId: salva.agent_id, origem: salva.origin ?? 'althius' }
   }
 
   async function retomarConversas(): Promise<ConversasRetomadas> {
     const { data, error } = await cliente.rpc('list_agent_conversations', { p_workspace_id: workspaceId })
     if (error) throw new Error('Não foi possível carregar as Conversas.')
-    const linhas = data as { id: string; kind: Tipo; agent_id: string | null }[]
+    // A Conversa do Slack continua no thread: a página do Agente retoma só a da Althius.
+    const linhas = (data as { id: string; kind: Tipo; agent_id: string | null; origin?: Origem }[])
+      .filter((linha) => linha.origin !== 'slack')
     // A mais recente de cada lugar, como estava antes de recarregar.
     const ultimaCoordenada = linhas.find((linha) => linha.kind === 'coordenada')
     const ultimas = new Map<AgenteId, string>()
@@ -254,28 +264,33 @@ export function criarFonteDeConversasSupabase(
     const retomadas: ConversasRetomadas = { coordenada: null, porAgente: {} }
     if (ultimaCoordenada) {
       coordenada = ultimaCoordenada.id
-      retomadas.coordenada = await lerConversa(ultimaCoordenada.id, passoDaCoordenacao)
+      const { turnos, emAndamento } = await lerConversa(ultimaCoordenada.id, passoDaCoordenacao)
+      retomadas.coordenada = { turnos, emAndamento }
     }
     for (const [agenteId, id] of ultimas) {
       porAgente.set(agenteId, id)
-      retomadas.porAgente[agenteId] = await lerConversa(id, passoDaConversa)
+      const { turnos, emAndamento } = await lerConversa(id, passoDaConversa)
+      retomadas.porAgente[agenteId] = { turnos, emAndamento }
     }
     return retomadas
   }
 
-  /** As Conversas coordenadas salvas, da mais recente à mais antiga. */
+  /** As Conversas coordenadas salvas e as que nasceram no Slack, da mais recente à mais antiga. */
   async function conversasSalvas(): Promise<ResumoDeConversa[]> {
     const { data, error } = await cliente.rpc('list_named_agent_conversations', { p_workspace_id: workspaceId })
     if (error) throw new Error('Não foi possível carregar as Conversas.')
-    return (data as ConversaListada[])
-      .filter((linha) => linha.kind === 'coordenada')
-      .map((linha) => ({
+    return (data as ConversaListada[]).flatMap((linha): ResumoDeConversa[] => {
+      const doSlack = linha.origin === 'slack' && linha.agent_id ? { agenteId: linha.agent_id } : undefined
+      if (linha.kind !== 'coordenada' && !doSlack) return []
+      return [{
         id: linha.id,
         titulo: linha.title,
         primeiroPedido: linha.first_request ?? '',
         atualizadaEm: linha.updated_at,
         emAndamento: linha.open_run_id !== null,
-      }))
+        ...(doSlack ? { doSlack } : {}),
+      }]
+    })
   }
 
   async function renomearConversa(id: string, titulo: string): Promise<void> {
@@ -288,9 +303,16 @@ export function criarFonteDeConversasSupabase(
 
   /** Abre uma Conversa salva: o próximo pedido da Coordenação passa a continuar esta. */
   async function abrirConversa(id: string): Promise<ConversaRetomada<PassoDaCoordenacao>> {
-    const conversa = await lerConversa(id, passoDaCoordenacao)
+    const { turnos, emAndamento } = await lerConversa(id, passoDaCoordenacao)
     coordenada = id
-    return conversa
+    return { turnos, emAndamento }
+  }
+
+  /** Só lê: a Conversa do Slack continua no thread, e nenhum pedido daqui a continua. */
+  async function abrirConversaDoSlack(id: string): Promise<ConversaDoSlack> {
+    const { turnos, emAndamento, agenteId, origem } = await lerConversa(id, passoDaConversa)
+    if (origem !== 'slack' || !agenteId) throw new Error('Esta Conversa não veio do Slack.')
+    return { turnos, emAndamento, agenteId }
   }
 
   return {
@@ -303,5 +325,6 @@ export function criarFonteDeConversasSupabase(
     renomearConversa,
     abrirConversa,
     conversaCoordenadaAtual: () => coordenada,
+    abrirConversaDoSlack,
   }
 }

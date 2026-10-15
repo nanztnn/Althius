@@ -6,14 +6,16 @@ import { Mensagem } from '@/components/mensagem'
 import { useConversas } from '@/conversa/contexto'
 import { useDados, useFonte } from '@/fonte/contexto'
 import { formatarDataCompleta } from '@/fonte/formatar-data'
-import { nomeDaConversa } from '@/fonte/tipos'
+import { nomeDaConversa, type ResumoDeConversa } from '@/fonte/tipos'
 import { mensagemDeErro } from '@/lib/utils'
+import { MarcaDoSlack } from '@/paginas/secoes/conversa'
 
 const QUANTAS = 8
 
 /**
- * As Conversas coordenadas salvas de quem está na sessão, para reabrir e continuar de onde pararam. Só existe onde as
- * Conversas ficam no banco (o Workspace operacional); na Demonstração, a lista não aparece.
+ * As Conversas coordenadas salvas de quem está na sessão, para reabrir e continuar de onde pararam, e as que nasceram no
+ * Slack, para ler. Só existe onde as Conversas ficam no banco (o Workspace operacional); na Demonstração, a lista não
+ * aparece.
  */
 export function ConversasSalvas() {
   const fonte = useFonte()
@@ -29,8 +31,13 @@ function ListaDeConversas() {
   const [erro, setErro] = useState('')
   if (!salvas || salvas.length === 0) return null
 
-  async function abrir(id: string) {
+  async function abrir({ id, doSlack }: ResumoDeConversa) {
     setErro('')
+    // A do Slack abre só para leitura, na Conversa do Agente dela; a coordenada continua na página da Conversa.
+    if (doSlack) {
+      navegar(`/agentes/${encodeURIComponent(doSlack.agenteId)}/conversa?slack=${encodeURIComponent(id)}`)
+      return
+    }
     try {
       await conversas.abrir(id)
       navegar('/conversa')
@@ -50,15 +57,18 @@ function ListaDeConversas() {
               <MessageSquare strokeWidth={1.8} className="size-4 shrink-0 text-al-muted" aria-hidden />
               <span className="flex min-w-0 flex-col">
                 <span className="truncate">{nomeDaConversa(conversa)}</span>
-                <span className="text-sm text-al-muted">
-                  {formatarDataCompleta(conversa.atualizadaEm)}
-                  {conversa.emAndamento && ' · respondendo'}
+                <span className="flex flex-wrap items-center gap-2 text-sm text-al-muted">
+                  <span>
+                    {formatarDataCompleta(conversa.atualizadaEm)}
+                    {conversa.emAndamento && ' · respondendo'}
+                  </span>
+                  {conversa.doSlack && <MarcaDoSlack />}
                 </span>
               </span>
             </span>
             <button
               type="button"
-              onClick={() => abrir(conversa.id)}
+              onClick={() => abrir(conversa)}
               aria-label={`Abrir a Conversa ${nomeDaConversa(conversa)}`}
               className={BOTAO_SECUNDARIO}
             >

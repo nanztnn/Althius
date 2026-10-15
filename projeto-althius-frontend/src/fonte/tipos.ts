@@ -620,6 +620,11 @@ export interface ConversaRetomada<P> {
   emAndamento?: AsyncIterable<P>
 }
 
+/** Uma Conversa que nasceu no Slack, com o Agente do thread. Na Althius, ela é só para leitura. */
+export interface ConversaDoSlack extends ConversaRetomada<PassoDaConversa> {
+  agenteId: AgenteId
+}
+
 /** As Conversas que a sessão tinha antes de recarregar a página: a do composer e a mais recente de cada Agente. */
 export interface ConversasRetomadas {
   coordenada: ConversaRetomada<PassoDaCoordenacao> | null
@@ -794,6 +799,8 @@ export interface FonteDeAgentes extends FonteObservavel {
   abrirConversa?(id: string): Promise<ConversaRetomada<PassoDaCoordenacao>>
   /** A Conversa coordenada em curso (a que o próximo pedido continua), ou nulo numa Conversa nova. */
   conversaCoordenadaAtual?(): string | null
+  /** Abre, só para leitura, uma Conversa que nasceu no Slack. Não muda a Conversa em curso de nenhum lugar. */
+  abrirConversaDoSlack?(id: string): Promise<ConversaDoSlack>
 }
 
 export * from './contas-tipos'
