@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { idaAoStripe } from '@/auth/assinatura'
-import { RaizDoAplicativo } from '@/raiz'
+import { ambienteNaAbertura, CHAVE_DO_AMBIENTE, RaizDoAplicativo } from '@/raiz'
 import { renderizarApp } from '@/test/renderizar'
 import { criarBancoDeAgentes, rpcsDeAgentes } from '@/test/agentes-no-banco'
 import { criarBancoDeConexoes, rpcsDeConexoes } from '@/test/conexoes-no-banco'
@@ -47,7 +47,7 @@ function abrirAlthius({
   /** Como os serviços do navegador (Pwned Passwords, Google, Turnstile) respondem; nenhum chama a rede. */
   navegador?: OpcoesDosServicosFalsos
 } = {}) {
-  if (ultimoAmbiente) localStorage.setItem('althius:modo_demo', String(ultimoAmbiente === 'demonstracao'))
+  if (ultimoAmbiente) localStorage.setItem(CHAVE_DO_AMBIENTE, ultimoAmbiente)
   if (ultimoWorkspace) sessionStorage.setItem('althius:workspace', ultimoWorkspace)
   const supabase = criarSupabaseFalso({
     ...opcoes,
@@ -1172,7 +1172,7 @@ describe('Telas de acesso', () => {
     window.history.replaceState(null, '', '/entrar')
     const { usuario } = abrirAlthius({ ultimoAmbiente: 'real' })
 
-    await usuario.click(await screen.findByRole('button', { name: 'Abrir Demonstração (sem login)' }))
+    await usuario.click(await screen.findByRole('button', { name: 'Ver a Demonstração' }))
     expect(await within(navegacao()).findByText('Demonstração')).toBeInTheDocument()
   })
 
@@ -1181,12 +1181,66 @@ describe('Telas de acesso', () => {
     window.history.replaceState(null, '', '/entrar')
     const { usuario, cliente, servicos } = abrirAlthius()
 
-    await usuario.click(await screen.findByRole('button', { name: 'Abrir Demonstração (sem login)' }))
+    await usuario.click(await screen.findByRole('button', { name: 'Ver a Demonstração' }))
     expect(await within(navegacao()).findByText('Demonstração')).toBeInTheDocument()
 
     cleanup()
     render(<RaizDoAplicativo cliente={cliente} servicos={servicos} />)
     expect(await within(await screen.findByRole('complementary', { name: 'Navegação' })).findByText('Demonstração')).toBeInTheDocument()
+  })
+})
+
+describe('Escolha do ambiente na abertura (produção × desenvolvimento)', () => {
+  afterEach(() => {
+    localStorage.removeItem(CHAVE_DO_AMBIENTE)
+    localStorage.removeItem('althius:modo_demo')
+  })
+
+  it('em produção, sem nada salvo, o padrão é o Workspace operacional (tela de entrada)', () => {
+    expect(ambienteNaAbertura({ busca: '', caminho: '/', armazenamento: window.localStorage, producao: true })).toBe('real')
+  })
+
+  it('em desenvolvimento, sem nada salvo, o padrão continua a Demonstração', () => {
+    expect(ambienteNaAbertura({ busca: '', caminho: '/', armazenamento: window.localStorage, producao: false })).toBe('demonstracao')
+  })
+
+  it.each([
+    ['?demo=true', 'demonstracao'],
+    ['?demo=false', 'real'],
+    ['?auth=true', 'real'],
+  ] as const)('%s força o ambiente %s, em produção e em desenvolvimento', (busca, esperado) => {
+    expect(ambienteNaAbertura({ busca, caminho: '/', armazenamento: window.localStorage, producao: true })).toBe(esperado)
+    expect(ambienteNaAbertura({ busca, caminho: '/', armazenamento: window.localStorage, producao: false })).toBe(esperado)
+  })
+
+  it('em produção, o valor antigo althius:modo_demo=true é apagado e ignorado', () => {
+    localStorage.setItem('althius:modo_demo', 'true')
+    expect(ambienteNaAbertura({ busca: '', caminho: '/', armazenamento: window.localStorage, producao: true })).toBe('real')
+    expect(localStorage.getItem('althius:modo_demo')).toBeNull()
+    expect(localStorage.getItem(CHAVE_DO_AMBIENTE)).toBeNull()
+  })
+
+  it('em desenvolvimento, o valor antigo migra para a chave nova', () => {
+    localStorage.setItem('althius:modo_demo', 'true')
+    expect(ambienteNaAbertura({ busca: '', caminho: '/', armazenamento: window.localStorage, producao: false })).toBe('demonstracao')
+    expect(localStorage.getItem('althius:modo_demo')).toBeNull()
+    expect(localStorage.getItem(CHAVE_DO_AMBIENTE)).toBe('demonstracao')
+  })
+
+  it('a chave nova salva vale em produção, inclusive Demonstração escolhida de propósito', () => {
+    localStorage.setItem(CHAVE_DO_AMBIENTE, 'demonstracao')
+    expect(ambienteNaAbertura({ busca: '', caminho: '/', armazenamento: window.localStorage, producao: true })).toBe('demonstracao')
+  })
+
+  it('build de produção sem nada salvo abre a tela de entrada, sem o banner do protótipo', async () => {
+    // Simula o default de produção: ambiente operacional já escolhido na abertura.
+    localStorage.setItem(CHAVE_DO_AMBIENTE, 'real')
+    window.history.replaceState(null, '', '/')
+    abrirAlthius()
+
+    expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeInTheDocument()
+    expect(screen.queryByText('Modo Protótipo (Completo)')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ver a Demonstração' })).toBeInTheDocument()
   })
 })
 
@@ -1536,6 +1590,7 @@ describe('Termos de Uso e Política de Privacidade', () => {
     // Nada na página leva ao início, que abriria a Demonstração.
     expect(screen.queryAllByRole('link').map((link) => link.getAttribute('href'))).not.toContain('/')
     // Ler os Termos não escolhe ambiente: o próximo acesso a este navegador abre como antes.
+    expect(localStorage.getItem(CHAVE_DO_AMBIENTE)).toBeNull()
     expect(localStorage.getItem('althius:modo_demo')).toBeNull()
   })
 
