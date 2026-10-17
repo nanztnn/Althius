@@ -7,7 +7,7 @@ import { Mensagem } from '@/components/mensagem'
 import { Pagina } from '@/components/pagina'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog'
-import { useDados, useFonte } from '@/fonte/contexto'
+import { useAmbiente, useDados, useFonte } from '@/fonte/contexto'
 import type { Agente } from '@/fonte/tipos'
 import { useEscritaDeAgente, usePodeAdministrarAgentes } from '@/paginas/administracao-de-agentes'
 import { SecaoAtividade } from '@/paginas/secoes/atividade'
@@ -33,6 +33,7 @@ type SecaoId = keyof typeof SECOES
 export function PaginaAgente() {
   const { agenteId, secao } = useParams()
   const agentes = useDados((fonte) => fonte.agentes(), [])
+  const { disponivel } = useAmbiente()
   const podeAdministrar = usePodeAdministrarAgentes()
   if (!agentes) return <Carregando />
 
@@ -64,7 +65,7 @@ export function PaginaAgente() {
             <span className="rotulo">
               {agente.especialidade.rotulo} · entrega: {agente.especialidade.entrega}
             </span>
-            <SeloDeEstado estado={agente.estado} />
+            <SeloDeEstado estado={agente.estado} conversasDisponiveis={disponivel('conversas')} />
           </div>
           <p className="max-w-2xl text-al-muted">{agente.descricao}</p>
         </div>

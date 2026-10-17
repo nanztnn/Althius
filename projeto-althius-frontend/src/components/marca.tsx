@@ -93,6 +93,15 @@ export const ROTULO_DO_ESTADO: Record<EstadoAgente, string> = {
   detectou: 'Detectou algo',
 }
 
+/**
+ * Rótulo do selo de estado. Com Conversas indisponíveis, o ocioso não promete conversa:
+ * vira "Sem conversas no momento". Trabalhando e Detectou ficam iguais.
+ */
+export function rotuloDoEstado(estado: EstadoAgente, conversasDisponiveis = true): string {
+  if (estado === 'ocioso' && !conversasDisponiveis) return 'Sem conversas no momento'
+  return ROTULO_DO_ESTADO[estado]
+}
+
 /** O pulso quando o Agente trabalha e o ponto rosa quando detectou algo; nada quando está disponível. */
 export function IndicadorDeEstado({ estado, className }: { estado: EstadoAgente; className?: string }) {
   if (estado === 'ocioso') return null
@@ -105,11 +114,18 @@ export function IndicadorDeEstado({ estado, className }: { estado: EstadoAgente;
 }
 
 /** Selo de estado de um Agente: o indicador e o rótulo. */
-export function SeloDeEstado({ estado }: { estado: EstadoAgente }) {
+export function SeloDeEstado({
+  estado,
+  conversasDisponiveis = true,
+}: {
+  estado: EstadoAgente
+  /** Quando as Conversas não estão no ar, o ocioso não diz "Disponível". */
+  conversasDisponiveis?: boolean
+}) {
   return (
     <span className="selo">
       <IndicadorDeEstado estado={estado} />
-      {ROTULO_DO_ESTADO[estado]}
+      {rotuloDoEstado(estado, conversasDisponiveis)}
     </span>
   )
 }

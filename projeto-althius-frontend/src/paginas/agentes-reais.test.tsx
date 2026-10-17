@@ -186,6 +186,55 @@ describe('Agentes no Workspace operacional', () => {
     expect(within(slack).getByRole('switch')).toHaveAttribute('aria-disabled', 'true')
   })
 
+  it('com Conversas indisponíveis, o Agente ocioso diz "Sem conversas no momento", não "Disponível"', async () => {
+    abrir(criarBancoDeAgentes(), '/')
+
+    const grade = await screen.findByRole('list', { name: 'Agentes do Workspace' })
+    expect(within(grade).queryByText('Disponível')).not.toBeInTheDocument()
+    expect(within(grade).getAllByText('Sem conversas no momento').length).toBeGreaterThan(0)
+
+    // Na página do Agente ocioso, o mesmo selo.
+    cleanup()
+    abrir(criarBancoDeAgentes(), '/agentes/agente-scopus/conversa')
+    expect(await screen.findByText('Sem conversas no momento')).toBeInTheDocument()
+    expect(screen.queryByText('Disponível')).not.toBeInTheDocument()
+  })
+
+  it('com Conversas disponíveis, o Agente ocioso volta a dizer "Disponível"', async () => {
+    localStorage.setItem('althius:modo_demo', 'false')
+    sessionStorage.setItem('althius:workspace', NORTE.id)
+    window.history.replaceState(null, '', '/')
+    const supabase = criarSupabaseFalso({
+      sessao: sessaoDe(MARINA),
+      tabelas: {
+        workspaces: [PESSOAL, NORTE],
+        workspace_memberships: [
+          { workspace_id: PESSOAL.id, role: 'admin', user_id: MARINA.id, active: true },
+          { workspace_id: NORTE.id, role: 'admin', user_id: MARINA.id, active: true },
+        ],
+      },
+      rpcs: {
+        bootstrap_personal_workspace: () => PESSOAL,
+        list_owned_sender_accounts: () => [],
+        ...rpcsDeAgentes(criarBancoDeAgentes()),
+        list_agent_conversations: () => [],
+        get_agent_conversation: () => ({ runs: [] }),
+        get_agent_run_events: () => ({ status: 'succeeded', error_code: null, events: [] }),
+      },
+      funcoes: {
+        'agent-conversation': (corpo) => {
+          if (corpo.action === 'capability') return { status: 200, corpo: { available: true } }
+          return { status: 202, corpo: { conversationId: 'conv-1', runId: 'run-1', status: 'queued' } }
+        },
+      },
+    })
+    render(<RaizDoAplicativo cliente={supabase.cliente} servicos={criarServicosDoNavegadorFalsos().servicos} />)
+
+    const grade = await screen.findByRole('list', { name: 'Agentes do Workspace' })
+    expect(within(grade).getAllByText('Disponível').length).toBeGreaterThan(0)
+    expect(within(grade).queryByText('Sem conversas no momento')).not.toBeInTheDocument()
+  })
+
   it('com o Canal Slack ativo no Workspace, o Administrador liga o Slack no Agente e a Personalização grava', async () => {
     const banco = criarBancoDeAgentes()
     const { usuario } = abrir(banco, '/agentes/agente-scopus/canais', 'admin', {
