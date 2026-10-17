@@ -48,3 +48,7 @@ Spec: [../spec.md](../spec.md) (US 1–3, 5, 7–10).
 ## Passos do Nan
 
 - Depois do merge: aplicar a migration (se houver), publicar `agent-conversation` e atualizar o worker; numa Conta de teste, pedir ao Rhetor a Sequência e aprovar.
+
+## Comments
+
+- 2026-10-17, decisão do Renan (dúvida 4 da fila): confirmado. Aprovar a proposta do Rhetor cria a Sequência sem Versão autorizada; o envio só começa no "Ativar envios". Segue blocked até o #227 entrar em `main`.

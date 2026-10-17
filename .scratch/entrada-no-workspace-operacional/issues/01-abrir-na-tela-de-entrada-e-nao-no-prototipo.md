@@ -46,3 +46,7 @@ Spec: [../spec.md](../spec.md) (US 1–5).
 ## Passos do Nan
 
 - Deploy do frontend depois do merge; abrir app.althius.com.br numa janela anônima e conferir a tela de entrada.
+
+## Comments
+
+- 2026-10-17, decisão do Renan (dúvida 2 da fila): confirmado como está. Produção abre na tela de entrada, sem o banner "Modo Protótipo (Completo)"; Demonstração só por `?demo=true`, pelo link "Ver a Demonstração" e para o visitante sem Contrato (ADR-0025). Desenvolvimento segue como hoje.

@@ -24,10 +24,10 @@ Login real, onboarding uma vez só, Conversa dos Agentes, Sequência pela IA.
 | 1.9 | PR #227 descadastro, variáveis, lote, Propostas pelo Hermes ([tickets](https://github.com/Kauedz/Althius/pull/227)) | ready-for-human | Renan revisa · Kauedz faz merge · Nan aplica | — | M |
 | 1.10 | PR #230 UI da criação em lote (base #227) | ready-for-human | Renan revisa · Kauedz | 1.9 | P |
 | 1.11 | PR #228 rótulo do status público da Sequência | ready-for-human | Renan revisa · Kauedz | — | P |
-| 1.12 | Jornada mínima por e-mail (Executor + Unipile em produção) — sem arquivo em `.scratch` | ready-for-human | Nan | 1.9 | M |
+| 1.12 | [canais-cadencia-backend/20 Jornada mínima por e-mail em produção](./canais-cadencia-backend/issues/20-jornada-minima-por-email-em-producao.md) (novo) | ready-for-human | Nan | 1.9 | M |
 | 1.13 | [cadencia/01 Rhetor propõe a Sequência por Aprovação](./cadencia-pela-ia/issues/01-rhetor-propoe-a-sequencia.md) (novo) | blocked | agente | 1.9 em `main` | M |
 | 1.14 | [cadencia/02 Sequência proposta aparece na Conversa](./cadencia-pela-ia/issues/02-sequencia-proposta-aparece-na-conversa.md) (novo) | blocked | agente | 1.13, 1.7 (`supabase-conversas.ts`) | M |
-| 1.15 | [entrada/03 Day0 uma vez só no Workspace operacional](./entrada-no-workspace-operacional/issues/03-day0-uma-vez-so-no-workspace-operacional.md) (novo, fatia 1 do [crm-real-e-stack/24](./crm-real-e-stack/issues/24-onboarding-no-workspace-operacional.md)) | needs-info | agente (depois do Renan) | decisões do Renan; 1.2 (`raiz` testada) | M |
+| 1.15 | [entrada/03 Day0 uma vez só no Workspace operacional](./entrada-no-workspace-operacional/issues/03-day0-uma-vez-so-no-workspace-operacional.md) (novo, fatia 1 do [crm-real-e-stack/24](./crm-real-e-stack/issues/24-onboarding-no-workspace-operacional.md)) | ready-for-agent | agente | 1.2 (`raiz` testada) | M |
 | 1.16 | Conectar a caixa de e-mail como Conta remetente | ready-for-human | Renan | 1.12 | P |
 | 1.17 | [cadencia/03 Primeira Cadência de e-mail de ponta a ponta](./cadencia-pela-ia/issues/03-primeira-cadencia-de-email-ponta-a-ponta.md) (novo) | blocked | Renan (+ Nan) | 1.6, 1.8, 1.9–1.14, 1.16 | P |
 
@@ -79,13 +79,19 @@ Lotes de agente da Onda 2 (máx. 3): **D** = 2.4 (`conexoes.tsx`) · 2.13 (`acco
 | 3.8 | PR #229 status dos tickets em `.scratch` | ready-for-human | Renan revisa · Kauedz | — | P |
 | 3.9 | [canais-althius 01–19](./canais-althius/issues/) (WhatsApp da Althius; grilling em andamento) | ready-for-human / ready-for-agent | Renan + agente | decisões do grilling | G |
 
-## Dúvidas para o Renan (needs-info)
+## Decisões do Renan (2026-10-17)
 
-1. **Onboarding (1.15):** Papel/HDYHAU na Conta de usuário e empresa no Workspace? "Pular" conta como concluído? A empresa do Day0 só preenche o Workspace criado pelo staff? Mini-ICP fora da fatia 1?
-2. **Default do app (1.2):** em produção, abrir na tela de entrada e a Demonstração só por link/visitante (ADR-0025), sem o banner "Modo Protótipo". Confirmar.
-3. **Motor fora do ar (1.7):** Conversas indisponíveis com aviso (proposto) ou aceitar o pedido e enfileirar com aviso?
-4. **Sequência pelo Rhetor (1.13):** aprovar cria a Sequência sem Versão autorizada e o envio só começa no "Ativar envios" (proposto). Confirmar.
-5. **Apollo na cascata:** manter fora (decisão do Nan de 2026-10-01; Apollo só pelas Conexões dos Agentes)?
-6. **motor-hermes "01" do Nan:** o 01 está `closed` (pesquisa); o aberto é o [02](./motor-hermes/issues/02-ligar-o-hermes-no-contrato-do-banco.md). É esse?
-7. **Jornada mínima por e-mail:** não há arquivo em `.scratch`; o Nan cria o ticket ou entra como item sem arquivo?
-8. **[crm-real-e-stack/25](./crm-real-e-stack/issues/25-avaliar-hermes-como-motor-dos-agentes.md):** fechar como decidido (Hermes)?
+As 8 dúvidas desta fila foram respondidas; cada uma está nos Comments do ticket.
+
+1. **Onboarding (1.15):** papel e HDYHAU na Conta de usuário, uma vez só; empresa, domínio e logo no Workspace que o staff criou, sem renomear. "Pular" conta como concluído. Mini-ICP fora da fatia. 1.15 → ready-for-agent.
+2. **Default do app (1.2):** confirmado como no ticket.
+3. **Motor fora do ar (1.7):** Conversas indisponíveis com aviso; não enfileirar.
+4. **Sequência pelo Rhetor (1.13):** confirmado: aprovar cria sem Versão autorizada, envio só no "Ativar envios".
+5. **Apollo na cascata:** fica fora; Apollo só pelas Conexões dos Agentes.
+6. **motor-hermes:** o ticket do Nan é o [02](./motor-hermes/issues/02-ligar-o-hermes-no-contrato-do-banco.md).
+7. **Jornada mínima por e-mail:** virou o [canais-cadencia-backend/20](./canais-cadencia-backend/issues/20-jornada-minima-por-email-em-producao.md), dono Nan.
+8. **[crm-real-e-stack/25](./crm-real-e-stack/issues/25-avaliar-hermes-como-motor-dos-agentes.md):** fechado, Hermes.
+
+## Andamento
+
+- 2026-10-17: Lote A (1.1, 1.2, 1.4) em execução, um agente por ticket; PRs saem pelo fork `nanztnn/Althius` para `Kauedz/althius`.

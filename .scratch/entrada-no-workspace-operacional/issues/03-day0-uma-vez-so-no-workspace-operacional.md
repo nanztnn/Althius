@@ -6,9 +6,9 @@ Spec: [../spec.md](../spec.md) (US 7–9). Ticket pai: [crm-real-e-stack/24](../
 
 **GATE:** uma migration aditiva com pgTAP, sem aplicar no remoto; sem deploy; sem dados da Demonstração no operacional.
 
-**Blocked by:** decisões do Renan (Comments abaixo).
+**Blocked by:** None (decisões do Renan nos Comments; rodar depois do 01 por causa da `raiz`).
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Quem faz:** agente de código depois das decisões; Nan aplica a migration. **Esforço:** M.
 
@@ -55,3 +55,4 @@ Spec: [../spec.md](../spec.md) (US 7–9). Ticket pai: [crm-real-e-stack/24](../
   2. "Pular" conta como concluído (nunca mais força) ou só adia até a próxima sessão?
   3. A empresa do Day0 só preenche o Workspace que o staff criou (ADR-0025), sem renomear?
   4. O mini-ICP fica fora desta fatia (vai com o crm-real-e-stack/24 e o Playbook)?
+- 2026-10-17, decisão do Renan (dúvida 1 da fila): (1) sim, papel e HDYHAU na Conta de usuário, perguntados uma vez; empresa, domínio e logo no Workspace. (2) "Pular" conta como concluído: nunca mais força o Day0; o que falta fica para o checklist. (3) sim, a empresa só preenche o Workspace que o staff criou, sem renomear. (4) mini-ICP fora desta fatia. Destravado.

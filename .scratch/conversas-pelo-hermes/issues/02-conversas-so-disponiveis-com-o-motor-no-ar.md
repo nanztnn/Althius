@@ -48,3 +48,7 @@ Spec: [../spec.md](../spec.md) (US 3, 4).
 ## Passos do Nan
 
 - Aplicar a migration, publicar `agent-conversation`, atualizar e reiniciar o worker; desligar o worker e conferir o aviso em até 2 minutos; religar e conferir o composer.
+
+## Comments
+
+- 2026-10-17, decisão do Renan (dúvida 3 da fila): com o worker do Hermes fora do ar, as Conversas ficam indisponíveis com aviso, como proposto. Não aceitar nem enfileirar pedido.
