@@ -22,6 +22,11 @@ interface Conversas {
   respondendo(agenteId: AgenteId): boolean
   enviar(agenteId: AgenteId, mensagem: Mensagem): void
   coordenada: EstadoDasConversas['coordenada']
+  /**
+   * Ainda buscando as Conversas salvas no banco (Workspace operacional). A página da Conversa coordenada espera
+   * isso antes de desistir e voltar à grade — senão o redirect ganha da retomada no primeiro paint.
+   */
+  retomando: boolean
   /** Um pedido no composer da página de Agentes: começa uma nova Conversa coordenada. */
   coordenar(pedido: Mensagem): void
   /** Um pedido seguinte no composer da Conversa: continua a Conversa coordenada a partir do que já foi feito. */
@@ -52,6 +57,9 @@ export function ConversasProvider({ children, animarDigitacao }: { children: Rea
     respondendo: {},
     coordenada: { itens: [], respondendo: false },
   })
+  // Começa true: no Workspace operacional a fonte pode ganhar retomarConversas depois da capability. A página da
+  // Conversa não pode redirecionar no primeiro paint vazio.
+  const [retomando, setRetomando] = useState(true)
 
   const esperarDigitacao = useCallback(
     (texto: string) =>
@@ -104,9 +112,14 @@ export function ConversasProvider({ children, animarDigitacao }: { children: Rea
 
   // No Workspace operacional, as Conversas estão no banco: voltam depois de recarregar a página, e o pedido que ainda
   // roda continua de onde a leitura parou, sem ser enviado de novo. Um pedido feito antes disso chegar tem prioridade.
+  // O App operacional só monta depois da capability: aqui, sem retomarConversas, não há o que esperar.
   useEffect(() => {
-    if (!fonte.retomarConversas) return
     let ativo = true
+    if (!fonte.retomarConversas) {
+      setRetomando(false)
+      return
+    }
+    setRetomando(true)
     const seguir = async <P,>(passos: AsyncIterable<P>, adicionarPasso: (passo: P) => void, parar: () => void) => {
       try {
         for await (const passo of passos) {
@@ -157,9 +170,12 @@ export function ConversasProvider({ children, animarDigitacao }: { children: Rea
             )
           }
         }
+        setRetomando(false)
       },
       // Sem as Conversas salvas, a tela começa vazia, como numa Conversa nova.
-      () => {},
+      () => {
+        if (ativo) setRetomando(false)
+      },
     )
     return () => {
       ativo = false
@@ -283,6 +299,7 @@ export function ConversasProvider({ children, animarDigitacao }: { children: Rea
       respondendo: (agenteId) => estado.respondendo[agenteId] ?? false,
       enviar: (agenteId, mensagem) => void enviar(agenteId, mensagem),
       coordenada: estado.coordenada,
+      retomando,
       coordenar: (pedido) => void pedirACoordenacao(pedido, false),
       continuar: (pedido) => void pedirACoordenacao(pedido, true),
       abrir,
@@ -291,7 +308,7 @@ export function ConversasProvider({ children, animarDigitacao }: { children: Rea
       ...(fonte.pararPedido ? { parar: (agenteId: AgenteId | null) => void fonte.pararPedido?.(agenteId).catch(() => {}) } : {}),
       animarDigitacao,
     }),
-    [estado, enviar, pedirACoordenacao, abrir, abrirDoAgente, novaDoAgente, fonte, animarDigitacao],
+    [estado, retomando, enviar, pedirACoordenacao, abrir, abrirDoAgente, novaDoAgente, fonte, animarDigitacao],
   )
 
   return <ContextoDasConversas.Provider value={valor}>{children}</ContextoDasConversas.Provider>

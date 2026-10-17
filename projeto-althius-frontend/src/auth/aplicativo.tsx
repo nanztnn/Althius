@@ -316,7 +316,8 @@ function AplicativoDoWorkspace({
   const { id: usuarioId, email = '' } = sessao.user
   const { workspace_id: workspaceId, role, nome: nomeDoWorkspace = 'Workspace' } = participacao
   // As Conversas dependem do modelo configurado no backend: até a função confirmar, ficam indisponíveis.
-  const [comConversas, setComConversas] = useState(false)
+  // null = ainda checando: o App só monta depois, para a retomada de /conversa não perder a corrida do primeiro paint.
+  const [comConversas, setComConversas] = useState<boolean | null>(null)
   // Os Sinais dependem de um actor que passou no teste: até o registro confirmar, ficam indisponíveis.
   const [comSinais, setComSinais] = useState(false)
   // Os anexos dos passos dependem do módulo ligado no backend (canais-10): até lá, ficam indisponíveis.
@@ -338,17 +339,19 @@ function AplicativoDoWorkspace({
   }, [cliente])
   const ambiente = useMemo(
     () =>
-      criarAmbienteDoWorkspace({
-        cliente,
-        usuario: { id: usuarioId, email },
-        participacao: { workspaceId, nomeDoWorkspace, papel: role === 'admin' ? 'administrador' : 'membro' },
-        conversasDisponiveis: comConversas,
-        sinaisDisponiveis: comSinais,
-        // A fila de Aprovações (CRM-15) liga com as Conversas: é nelas que os Agentes pedem Aprovações, e o crm-handoff
-        // que executa o envio aprovado é publicado junto com o agent-conversation.
-        aprovacoesDisponiveis: comConversas,
-        anexosDisponiveis: comAnexos,
-      }),
+      comConversas === null
+        ? null
+        : criarAmbienteDoWorkspace({
+            cliente,
+            usuario: { id: usuarioId, email },
+            participacao: { workspaceId, nomeDoWorkspace, papel: role === 'admin' ? 'administrador' : 'membro' },
+            conversasDisponiveis: comConversas,
+            sinaisDisponiveis: comSinais,
+            // A fila de Aprovações (CRM-15) liga com as Conversas: é nelas que os Agentes pedem Aprovações, e o crm-handoff
+            // que executa o envio aprovado é publicado junto com o agent-conversation.
+            aprovacoesDisponiveis: comConversas,
+            anexosDisponiveis: comAnexos,
+          }),
     [cliente, usuarioId, email, workspaceId, nomeDoWorkspace, role, comConversas, comSinais, comAnexos],
   )
 
@@ -369,6 +372,8 @@ function AplicativoDoWorkspace({
       />
     )
   }
+
+  if (!ambiente) return null
 
   return (
     <>

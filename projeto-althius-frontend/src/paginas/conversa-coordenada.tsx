@@ -85,7 +85,11 @@ export function PaginaConversaCoordenada() {
   const fim = useRef<HTMLDivElement>(null)
   useSeguirOFim(conteudo, fim)
 
-  if (itens.length === 0) return <Navigate to="/" replace />
+  // Sem itens ainda: espera a retomada do banco. Só volta à grade quando a busca terminou vazia (Conversa nova).
+  if (itens.length === 0) {
+    if (conversas.retomando) return null
+    return <Navigate to="/" replace />
+  }
 
   const turnos = emTurnos(itens)
   const referencias: Referencias = {
